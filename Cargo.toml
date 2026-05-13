@@ -5,3 +5,8 @@ members = [
     "mikrotik",
 ]
 resolver = "2"
+
+# Local development override — points at the sibling checkout.
+# Remove or comment out when building without a local project-43 clone.
+[patch."https://github.com/mabels/project-43"]
+p43 = { path = "../project-43/lib" }

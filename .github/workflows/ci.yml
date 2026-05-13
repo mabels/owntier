@@ -20,12 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: checkout project-43 (path dependency)
-        uses: actions/checkout@v6
-        with:
-          repository: mabels/project-43
-          path: ../project-43
-
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.9
 

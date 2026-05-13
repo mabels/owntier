@@ -10,7 +10,7 @@ path = "src/main.rs"
 [dependencies]
 owntier          = { path = "../lib" }
 owntier-mikrotik = { path = "../mikrotik" }
-p43              = { path = "../../project-43/lib", features = ["bus"] }
+p43              = { git = "https://github.com/mabels/project-43", branch = "main", features = ["bus"] }
 clap             = { version = "4", features = ["derive", "env"] }
 anyhow           = "1"
 base64           = "0.22"
