@@ -1,0 +1,14 @@
+[package]
+name = "owntier-mikrotik"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+doctest = false
+
+[dependencies]
+owntier          = { path = "../lib" }
+anyhow           = "1"
+base64           = "0.22"
+rustls           = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pki-types = "1"

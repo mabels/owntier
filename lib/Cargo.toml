@@ -1,0 +1,19 @@
+[package]
+name = "owntier"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+doctest = false
+
+[dependencies]
+p43              = { path = "../../project-43/lib", features = ["bus"] }
+anyhow           = "1"
+base64           = "0.22"
+serde            = { version = "1", features = ["derive"] }
+ciborium         = "0.2"
+rand             = "0.8"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+aes-gcm      = "0.10"
+hkdf         = "0.12"
+sha2         = "0.10"

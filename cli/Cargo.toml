@@ -1,0 +1,18 @@
+[package]
+name = "owntier-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "owntier"
+path = "src/main.rs"
+
+[dependencies]
+owntier          = { path = "../lib" }
+owntier-mikrotik = { path = "../mikrotik" }
+p43              = { path = "../../project-43/lib", features = ["bus"] }
+clap             = { version = "4", features = ["derive", "env"] }
+anyhow           = "1"
+base64           = "0.22"
+dirs             = "6.0.0"
+rpassword        = "7"
