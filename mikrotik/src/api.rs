@@ -13,9 +13,7 @@ impl<T: Read + Write> RosIo for T {}
 // ── TLS: no-verify verifier (MikroTik uses self-signed certs by default) ──────
 
 mod tls {
-    use rustls::client::danger::{
-        HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
-    };
+    use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
     use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
     use rustls::{ClientConfig, DigitallySignedStruct, Error, SignatureScheme};
     use std::sync::Arc;
@@ -88,14 +86,22 @@ impl RosSession {
                 .with_context(|| format!("invalid hostname for TLS: {host}"))?;
             let conn = rustls::ClientConnection::new(config, server_name)
                 .context("create TLS client connection")?;
-            Ok(Self { stream: Box::new(rustls::StreamOwned::new(conn, tcp)) })
+            Ok(Self {
+                stream: Box::new(rustls::StreamOwned::new(conn, tcp)),
+            })
         } else {
-            Ok(Self { stream: Box::new(tcp) })
+            Ok(Self {
+                stream: Box::new(tcp),
+            })
         }
     }
 
     pub fn login(&mut self, user: &str, password: &str) -> Result<()> {
-        self.sentence(&["/login", &format!("=name={user}"), &format!("=password={password}")])?;
+        self.sentence(&[
+            "/login",
+            &format!("=name={user}"),
+            &format!("=password={password}"),
+        ])?;
         let reply = self.read_reply()?;
         match reply.first().map(|s| s.as_str()) {
             Some("!done") => Ok(()),
@@ -208,12 +214,10 @@ fn read_length(r: &mut dyn Read) -> Result<usize> {
     if first < 0xF0 {
         let mut b4 = [0u8; 3];
         r.read_exact(&mut b4)?;
-        return Ok(
-            ((first as usize & 0x0F) << 24)
-                | (b4[0] as usize) << 16
-                | (b4[1] as usize) << 8
-                | b4[2] as usize,
-        );
+        return Ok(((first as usize & 0x0F) << 24)
+            | (b4[0] as usize) << 16
+            | (b4[1] as usize) << 8
+            | b4[2] as usize);
     }
     bail!("unsupported RouterOS length prefix: 0x{first:02x}")
 }

@@ -1,8 +1,8 @@
-use anyhow::{bail, Context, Result};
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng as AeadOsRng},
     Aes256Gcm,
 };
+use anyhow::{bail, Context, Result};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use std::collections::HashMap;
@@ -134,7 +134,6 @@ pub fn list_attached(network: &str, owntier_dir: &Path) -> Result<Vec<String>> {
 /// Remove a plugin config for a network.
 pub fn detach(plugin_type: &str, network: &str, owntier_dir: &Path) -> Result<()> {
     let path = plugin_path(owntier_dir, network, plugin_type);
-    std::fs::remove_file(&path).with_context(|| {
-        format!("no {plugin_type} plugin attached to network {network:?}")
-    })
+    std::fs::remove_file(&path)
+        .with_context(|| format!("no {plugin_type} plugin attached to network {network:?}"))
 }

@@ -11,14 +11,19 @@ pub fn run(cmd: NetworkCmd, owntier_dir: &Path, store_dir: &Path) -> Result<()> 
     std::fs::create_dir_all(&bus_dir)?;
 
     match cmd {
-        NetworkCmd::Create { name, r#as, device_id } => {
-            cmd_create(owntier_dir, &bus_dir, &name, r#as, device_id.as_deref())
-        }
+        NetworkCmd::Create {
+            name,
+            r#as,
+            device_id,
+        } => cmd_create(owntier_dir, &bus_dir, &name, r#as, device_id.as_deref()),
         NetworkCmd::Show { name } => cmd_show(owntier_dir, store_dir, &name),
         NetworkCmd::Delete { name, force } => cmd_delete(owntier_dir, &name, force),
-        NetworkCmd::Deploy { name, stopped, verbose, dry_run } => {
-            cmd_deploy(owntier_dir, store_dir, &name, stopped, verbose, dry_run)
-        }
+        NetworkCmd::Deploy {
+            name,
+            stopped,
+            verbose,
+            dry_run,
+        } => cmd_deploy(owntier_dir, store_dir, &name, stopped, verbose, dry_run),
         NetworkCmd::List => cmd_list(owntier_dir),
     }
 }
@@ -45,8 +50,7 @@ fn cmd_show(owntier_dir: &Path, store_dir: &Path, name: &str) -> Result<()> {
         return Ok(());
     }
 
-    let device_secret =
-        crate::mikrotik_cmd::resolve_device_secret(owntier_dir, store_dir, name)?;
+    let device_secret = crate::mikrotik_cmd::resolve_device_secret(owntier_dir, store_dir, name)?;
 
     for plugin_type in &plugins {
         println!("plugin     : {}", plugin_type);
@@ -98,7 +102,9 @@ fn cmd_deploy(
         &device_secret,
         owntier_dir,
     )
-    .with_context(|| format!("attach a mikrotik plugin first: owntier mikrotik attach --network {name} ..."))?;
+    .with_context(|| {
+        format!("attach a mikrotik plugin first: owntier mikrotik attach --network {name} ...")
+    })?;
 
     let record = owntier::network::load(name, owntier_dir)?;
     println!("Deploying network {:?} ...", name);
@@ -106,7 +112,11 @@ fn cmd_deploy(
         &record,
         device_secret,
         &cfg,
-        &owntier_mikrotik::deploy::DeployFlags { stopped, verbose, dry_run },
+        &owntier_mikrotik::deploy::DeployFlags {
+            stopped,
+            verbose,
+            dry_run,
+        },
     )
 }
 

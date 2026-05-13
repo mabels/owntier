@@ -31,7 +31,9 @@ pub fn deploy(
     cfg: &HashMap<String, String>,
     flags: &DeployFlags,
 ) -> Result<()> {
-    let host = cfg.get(keys::HOST).context("missing 'host' in mikrotik plugin config")?;
+    let host = cfg
+        .get(keys::HOST)
+        .context("missing 'host' in mikrotik plugin config")?;
     let port: u16 = cfg
         .get(keys::PORT)
         .map(|v| v.parse())
@@ -41,8 +43,13 @@ pub fn deploy(
     let user = cfg.get(keys::USER).map(|s| s.as_str()).unwrap_or("admin");
     let password = cfg.get(keys::PASSWORD).map(|s| s.as_str()).unwrap_or("");
     let wg_name_default = format!("wg-{}", record.name);
-    let wg_name = cfg.get(keys::WG_NAME).map(|s| s.as_str()).unwrap_or(&wg_name_default);
-    let wg_ip = cfg.get(keys::WG_IP).context("missing 'wg_ip' in mikrotik plugin config")?;
+    let wg_name = cfg
+        .get(keys::WG_NAME)
+        .map(|s| s.as_str())
+        .unwrap_or(&wg_name_default);
+    let wg_ip = cfg
+        .get(keys::WG_IP)
+        .context("missing 'wg_ip' in mikrotik plugin config")?;
     let wg_port: u16 = cfg
         .get(keys::WG_PORT)
         .map(|v| v.parse())
@@ -67,7 +74,11 @@ pub fn deploy(
     // ── helpers ───────────────────────────────────────────────────────────────
 
     let print = flags.verbose || flags.dry_run;
-    let prefix = if flags.dry_run { "[dry-run]" } else { "[sent]  " };
+    let prefix = if flags.dry_run {
+        "[dry-run]"
+    } else {
+        "[sent]  "
+    };
 
     let mut send = |api: &mut Option<RosSession>, words: &[&str]| -> Result<()> {
         if print {
@@ -80,104 +91,133 @@ pub fn deploy(
     };
 
     // In dry-run we skip existence checks (assume a fresh device).
-    let mut query = |api: &mut Option<RosSession>, words: &[&str]| -> Result<Vec<HashMap<String, String>>> {
-        if print {
-            println!("  [query]  {}", display_sentence(words));
-        }
-        match api {
-            Some(ref mut s) => {
-                let rows = s.run(words)?;
-                if print {
-                    if rows.is_empty() {
-                        println!("  [query]  → (none)");
-                    } else {
-                        for row in &rows {
-                            let mut pairs: Vec<_> = row.iter().collect();
-                            pairs.sort_by_key(|(k, _)| k.as_str());
-                            let summary: Vec<String> = pairs.iter()
-                                .map(|(k, v)| format!("{}={:?}", k, v))
-                                .collect();
-                            println!("  [query]  → {}", summary.join(" "));
+    let mut query =
+        |api: &mut Option<RosSession>, words: &[&str]| -> Result<Vec<HashMap<String, String>>> {
+            if print {
+                println!("  [query]  {}", display_sentence(words));
+            }
+            match api {
+                Some(ref mut s) => {
+                    let rows = s.run(words)?;
+                    if print {
+                        if rows.is_empty() {
+                            println!("  [query]  → (none)");
+                        } else {
+                            for row in &rows {
+                                let mut pairs: Vec<_> = row.iter().collect();
+                                pairs.sort_by_key(|(k, _)| k.as_str());
+                                let summary: Vec<String> = pairs
+                                    .iter()
+                                    .map(|(k, v)| format!("{}={:?}", k, v))
+                                    .collect();
+                                println!("  [query]  → {}", summary.join(" "));
+                            }
                         }
                     }
+                    Ok(rows)
                 }
-                Ok(rows)
+                None => Ok(vec![]),
             }
-            None => Ok(vec![]),
-        }
-    };
+        };
 
     // ── WireGuard interface ───────────────────────────────────────────────────
 
-    let existing_wg = query(&mut api, &[
-        "/interface/wireguard/print",
-        &format!("?name={}", wg_name),
-    ])?;
+    let existing_wg = query(
+        &mut api,
+        &["/interface/wireguard/print", &format!("?name={}", wg_name)],
+    )?;
     if let Some(entry) = existing_wg.first() {
         let id = entry.get(".id").context("WireGuard entry missing .id")?;
         println!("  updating WireGuard interface {}", wg_name);
-        send(&mut api, &[
-            "/interface/wireguard/set",
-            &format!("=.id={}", id),
-            &format!("=listen-port={}", wg_port),
-            &format!("=private-key={}", privkey_b64),
-            &format!("=disabled={}", disabled),
-        ])?;
+        send(
+            &mut api,
+            &[
+                "/interface/wireguard/set",
+                &format!("=.id={}", id),
+                &format!("=listen-port={}", wg_port),
+                &format!("=private-key={}", privkey_b64),
+                &format!("=disabled={}", disabled),
+            ],
+        )?;
     } else {
         println!("  creating WireGuard interface {}", wg_name);
-        send(&mut api, &[
-            "/interface/wireguard/add",
-            &format!("=name={}", wg_name),
-            &format!("=listen-port={}", wg_port),
-            &format!("=private-key={}", privkey_b64),
-            &format!("=disabled={}", disabled),
-        ])?;
+        send(
+            &mut api,
+            &[
+                "/interface/wireguard/add",
+                &format!("=name={}", wg_name),
+                &format!("=listen-port={}", wg_port),
+                &format!("=private-key={}", privkey_b64),
+                &format!("=disabled={}", disabled),
+            ],
+        )?;
     }
 
     // ── IP address ────────────────────────────────────────────────────────────
 
-    let existing_addr = query(&mut api, &[
-        "/ip/address/print",
-        &format!("?interface={}", wg_name),
-    ])?;
+    let existing_addr = query(
+        &mut api,
+        &["/ip/address/print", &format!("?interface={}", wg_name)],
+    )?;
     if let Some(entry) = existing_addr.first() {
         let id = entry.get(".id").context("IP address entry missing .id")?;
         println!("  updating IP address on {} to {}", wg_name, wg_ip);
-        send(&mut api, &[
-            "/ip/address/set",
-            &format!("=.id={}", id),
-            &format!("=address={}", wg_ip),
-        ])?;
+        send(
+            &mut api,
+            &[
+                "/ip/address/set",
+                &format!("=.id={}", id),
+                &format!("=address={}", wg_ip),
+            ],
+        )?;
     } else {
         println!("  assigning IP {} to {}", wg_ip, wg_name);
-        send(&mut api, &[
-            "/ip/address/add",
-            &format!("=address={}", wg_ip),
-            &format!("=interface={}", wg_name),
-        ])?;
+        send(
+            &mut api,
+            &[
+                "/ip/address/add",
+                &format!("=address={}", wg_ip),
+                &format!("=interface={}", wg_name),
+            ],
+        )?;
     }
 
     // ── BGP template ──────────────────────────────────────────────────────────
 
-    let existing_bgp = query(&mut api, &[
-        "/routing/bgp/template/print",
-        &format!("?name={}", bgp_template),
-    ])?;
+    let existing_bgp = query(
+        &mut api,
+        &[
+            "/routing/bgp/template/print",
+            &format!("?name={}", bgp_template),
+        ],
+    )?;
     if let Some(entry) = existing_bgp.first() {
         let id = entry.get(".id").context("BGP template entry missing .id")?;
-        println!("  updating BGP template {} (AS {})", bgp_template, record.as_number);
-        send(&mut api, &[
-            "/routing/bgp/template/set",
-            &format!("=.id={}", id),
-            &format!("=as={}", record.as_number),
-        ])?;
+        println!(
+            "  updating BGP template {} (AS {})",
+            bgp_template, record.as_number
+        );
+        send(
+            &mut api,
+            &[
+                "/routing/bgp/template/set",
+                &format!("=.id={}", id),
+                &format!("=as={}", record.as_number),
+            ],
+        )?;
     } else {
-        println!("  creating BGP template {} (AS {})", bgp_template, record.as_number);
-        send(&mut api, &[
-            "/routing/bgp/template/add",
-            &format!("=name={}", bgp_template),
-            &format!("=as={}", record.as_number),
-        ])?;
+        println!(
+            "  creating BGP template {} (AS {})",
+            bgp_template, record.as_number
+        );
+        send(
+            &mut api,
+            &[
+                "/routing/bgp/template/add",
+                &format!("=name={}", bgp_template),
+                &format!("=as={}", record.as_number),
+            ],
+        )?;
     }
 
     // ── summary ───────────────────────────────────────────────────────────────

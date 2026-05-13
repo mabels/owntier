@@ -8,10 +8,32 @@ use subcmd::MikrotikCmd;
 
 pub fn run(cmd: MikrotikCmd, owntier_dir: &Path, store_dir: &Path) -> Result<()> {
     match cmd {
-        MikrotikCmd::Attach { network, host, ssl, port, user, password, wg_name, wg_ip, wg_port } => {
+        MikrotikCmd::Attach {
+            network,
+            host,
+            ssl,
+            port,
+            user,
+            password,
+            wg_name,
+            wg_ip,
+            wg_port,
+        } => {
             let port = port.unwrap_or(if ssl { 8729 } else { 8728 });
             let wg_name = wg_name.unwrap_or_else(|| format!("wg-{}", network));
-            cmd_attach(owntier_dir, store_dir, &network, &host, port, ssl, &user, password, &wg_name, &wg_ip, wg_port)
+            cmd_attach(
+                owntier_dir,
+                store_dir,
+                &network,
+                &host,
+                port,
+                ssl,
+                &user,
+                password,
+                &wg_name,
+                &wg_ip,
+                wg_port,
+            )
         }
         MikrotikCmd::Show { network } => cmd_show(owntier_dir, store_dir, &network),
         MikrotikCmd::Detach { network } => cmd_detach(owntier_dir, &network),
@@ -34,8 +56,9 @@ fn cmd_attach(
 ) -> Result<()> {
     let password = match password {
         Some(p) => p,
-        None => rpassword::prompt_password("RouterOS password: ")
-            .context("read RouterOS password")?,
+        None => {
+            rpassword::prompt_password("RouterOS password: ").context("read RouterOS password")?
+        }
     };
 
     let record = owntier::network::load(network, owntier_dir)?;
@@ -61,7 +84,11 @@ fn cmd_attach(
 
     println!("MikroTik plugin attached to network {:?}", network);
     println!("  host     : {}", host);
-    println!("  port     : {} ({})", port, if ssl { "TLS" } else { "plain" });
+    println!(
+        "  port     : {} ({})",
+        port,
+        if ssl { "TLS" } else { "plain" }
+    );
     println!("  user     : {}", user);
     println!("  wg_name  : {}", wg_name);
     println!("  wg_ip    : {}", wg_ip);
@@ -107,12 +134,7 @@ pub(crate) fn resolve_device_secret(
     let record = owntier::network::load(network, owntier_dir)?;
     let bus_dir = p43::bus::bus_dir(store_dir);
     let label = p43::bus::resolve_own_device_label(&bus_dir, None, Some(&record.device_id))
-        .with_context(|| {
-            format!(
-                "device-id {} not found in p43 bus store",
-                record.device_id
-            )
-        })?;
+        .with_context(|| format!("device-id {} not found in p43 bus store", record.device_id))?;
     let (_label, _path, key) = p43::bus::resolve_device_key(&bus_dir, Some(&label))?;
     Ok(key.ecdh_secret())
 }
